@@ -28,6 +28,8 @@ export default function SenderSignupPage() {
     email: "",
     phone: "",
     company: "",
+    password: "",
+    confirmPassword: "",
     agreeTerms: false,
   });
 
@@ -41,9 +43,32 @@ export default function SenderSignupPage() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Sender signup:", formData);
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+    if (formData.password.length < 8) {
+      alert("Password must be at least 8 characters");
+      return;
+    }
+    try {
+      const { confirmPassword, agreeTerms, ...payload } = formData;
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, role: "sender" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        window.location.href = "/login";
+      } else {
+        alert(data.error || "Signup failed");
+      }
+    } catch (err) {
+      alert("Network error");
+    }
   };
 
   return (
@@ -89,9 +114,9 @@ export default function SenderSignupPage() {
       </header>
 
       {/* Main Content */}
-      <main className="relative flex-grow flex flex-col lg:flex-row">
+      <main className="relative flex-grow flex flex-col md:flex-row">
         {/* Left Marketing Panel */}
-        <aside className="hidden lg:flex lg:w-5/12 bg-gradient-to-br from-primary-container via-[#283593] to-[#0d1452] relative overflow-hidden">
+        <aside className="hidden md:flex md:w-5/12 bg-gradient-to-br from-primary-container via-[#283593] to-[#0d1452] relative overflow-hidden">
           {/* Animated Background Elements */}
           <div className="absolute inset-0">
             <div className="absolute top-20 left-20 w-64 h-64 bg-secondary-container/20 rounded-full blur-3xl animate-pulse"></div>
@@ -190,17 +215,17 @@ export default function SenderSignupPage() {
         </aside>
 
         {/* Right Form Panel */}
-        <section className="flex-grow flex items-start lg:items-center justify-center p-4 lg:p-8 xl:p-12">
+        <section className="flex-grow flex items-start md:items-center justify-center p-4 md:p-8 xl:p-12">
           <div className="w-full max-w-xl">
             {/* Mobile Header */}
-            <div className="lg:hidden mb-6 text-center">
+            <div className="md:hidden mb-6 text-center">
               <div className="inline-flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary-container to-primary rounded-xl flex items-center justify-center shadow-lg">
                   <MdLocalShipping className="text-white text-lg" />
                 </div>
               </div>
-              <h1 className="text-2xl font-black text-primary mb-1">Ship with Confidence.</h1>
-              <p className="text-sm text-slate-600">Join the network where velocity meets precision.</p>
+              <h1 className="text-xl md:text-2xl font-black text-primary mb-1">Ship with Confidence.</h1>
+              <p className="text-xs md:text-sm text-slate-600">Join the network where velocity meets precision.</p>
             </div>
 
             {/* Form Card */}
@@ -209,12 +234,12 @@ export default function SenderSignupPage() {
               <div className="bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-200/60">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-secondary-container to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-secondary-container/30">
-                      <MdPerson className="text-white text-lg" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-black text-primary">Sender Onboarding</h2>
-                      <p className="text-xs font-medium text-slate-500">Step 1 of 4: Account & Contact</p>
+                      <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-secondary-container to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-secondary-container/30">
+                        <MdPerson className="text-white text-base md:text-lg" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg md:text-xl font-black text-primary">Sender Onboarding</h2>
+                        <p className="text-[10px] md:text-xs font-medium text-slate-500">Step 1 of 4: Account & Contact</p>
                     </div>
                   </div>
                 </div>
@@ -322,6 +347,42 @@ export default function SenderSignupPage() {
                   </div>
                 </div>
 
+                {/* Password Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Password</label>
+                    <div className="relative group">
+                      <input
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        onFocus={() => setFocusedField('password')}
+                        onBlur={() => setFocusedField(null)}
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-secondary-container focus:ring-0 transition-all outline-none text-sm font-medium placeholder:text-slate-400 group-hover:border-slate-300"
+                        placeholder="Min. 8 characters"
+                        type="password"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-widest">Confirm Password</label>
+                    <div className="relative group">
+                      <input
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        onFocus={() => setFocusedField('confirmPassword')}
+                        onBlur={() => setFocusedField(null)}
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-secondary-container focus:ring-0 transition-all outline-none text-sm font-medium placeholder:text-slate-400 group-hover:border-slate-300"
+                        placeholder="Re-enter password"
+                        type="password"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Terms Checkbox */}
                 <div className="bg-gradient-to-r from-slate-50 to-white p-4 rounded-xl border-2 border-slate-200 hover:border-slate-300 transition-colors">
                   <div className="flex items-start gap-3">
@@ -344,20 +405,14 @@ export default function SenderSignupPage() {
              
             
 
-     <button
+                  <button
                     className="relative w-full sm:w-auto group overflow-hidden"
                     type="submit"
                   >
-                      <a href="/sender/dashboard">
                     <div className="relative px-8 py-3.5 bg-gradient-to-r from-secondary-container to-orange-500 rounded-xl shadow-lg shadow-secondary-container/30 hover:shadow-xl transition-all flex items-center justify-center gap-2">
-                   
                       <span className="text-sm font-bold text-white uppercase tracking-widest">Continue</span>
                       <MdArrowForward className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" />
-                  
-
                     </div>
-                     </a>
-                     
                   </button>
 
             

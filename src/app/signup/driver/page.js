@@ -25,9 +25,39 @@ export default function DriverSignupPage() {
     lastName: "",
     email: "",
     phone: "",
-    carrierType: "Owner Operator",
+    password: "",
+    confirmPassword: "",
+    carrierType: "independent",
     experience: "",
   });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+    if (formData.password.length < 8) {
+      alert("Password must be at least 8 characters");
+      return;
+    }
+    try {
+      const { confirmPassword, ...payload } = formData;
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, role: "driver" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        window.location.href = "/login";
+      } else {
+        alert(data.error || "Signup failed");
+      }
+    } catch (err) {
+      alert("Network error");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-body-md text-on-background">
@@ -50,7 +80,7 @@ export default function DriverSignupPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* SideNavBar - Registration Progress */}
-        <aside className="bg-slate-50 text-indigo-900 font-medium h-full w-64 border-r border-slate-200 hidden lg:flex flex-col sticky left-0 top-0">
+        <aside className="bg-slate-50 text-indigo-900 font-medium h-full w-64 border-r border-slate-200 hidden md:flex flex-col sticky left-0 top-0">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
@@ -98,7 +128,7 @@ export default function DriverSignupPage() {
         <main className="flex-1 overflow-y-auto bg-surface-container-low p-4 md:p-6 xl:p-8">
           <div className="max-w-4xl mx-auto">
             {/* Hero Section for Driver Trust */}
-            <div className="relative h-48 rounded-xl overflow-hidden mb-6 shadow-sm border border-outline-variant">
+            <div className="relative h-36 md:h-48 rounded-xl overflow-hidden mb-4 md:mb-6 shadow-sm border border-outline-variant">
               <div className="absolute inset-0 bg-gradient-to-r from-primary-container to-transparent z-10"></div>
               <Image
                 alt="Modern semi-truck driving on a scenic highway at dawn with soft golden light reflecting off the chrome details"
@@ -109,8 +139,8 @@ export default function DriverSignupPage() {
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkpcBVioMt77iWvctJirtg1lttrmecdXkRxuB-2YKixRlRpnKSwCbJmozFA2_23TxIWm15_AgpfJpRChoyifPNFrtqZ2JgObrt4cQNPmjxXwyi05CL-cnMOoqLrdDa4eOHfubaqGys70Vj2_nI7o3bMPd5tIShhhcfKV7MH4b-MHUQFjTGwtjKNLfuQw1YOhKllgVI5Lo4ECw76nO-euirjf-m-xjkdxTn6U5de8dMQZuzc52wWMlvrlc7ZGGyNZjPEbdWlQO-RUI"
               />
               <div className="absolute inset-0 z-20 flex flex-col justify-center px-6">
-                <h1 className="text-3xl md:text-4xl font-bold text-white">Drive with Authority.</h1>
-                <p className="text-lg text-on-primary-container mt-1">Join the most reliable carrier network in the industry.</p>
+                <h1 className="text-2xl md:text-3xl font-bold text-white">Drive with Authority.</h1>
+                <p className="text-sm md:text-base text-on-primary-container mt-1">Join the most reliable carrier network in the industry.</p>
               </div>
             </div>
 
@@ -131,7 +161,7 @@ export default function DriverSignupPage() {
               </div>
 
               {/* Main Form Section */}
-              <div className="p-6 lg:p-8">
+              <form onSubmit={handleSubmit} className="p-6 lg:p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Section: Personal Identity */}
                   <div className="space-y-4">
@@ -192,9 +222,9 @@ export default function DriverSignupPage() {
                         value={formData.carrierType}
                         onChange={(e) => setFormData({ ...formData, carrierType: e.target.value })}
                       >
-                        <option>Owner Operator</option>
-                        <option>Fleet Driver</option>
-                        <option>Dispatcher</option>
+                        <option value="independent">Owner Operator</option>
+                        <option value="fleet">Fleet Driver</option>
+                        <option value="heavy-haul">Heavy Haul</option>
                       </select>
                     </label>
                     <label className="block">
@@ -208,6 +238,32 @@ export default function DriverSignupPage() {
                       />
                     </label>
                   </div>
+                </div>
+
+                {/* Password Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                  <label className="block">
+                    <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block mb-1">Password</span>
+                    <input
+                      className="w-full px-4 py-2 rounded border border-outline focus:border-secondary-container focus:ring-2 focus:ring-secondary-container/20 transition-all outline-none text-on-surface"
+                      placeholder="Min. 8 characters"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block mb-1">Confirm Password</span>
+                    <input
+                      className="w-full px-4 py-2 rounded border border-outline focus:border-secondary-container focus:ring-2 focus:ring-secondary-container/20 transition-all outline-none text-on-surface"
+                      placeholder="Re-enter password"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      required
+                    />
+                  </label>
                 </div>
 
                 {/* Divider */}
@@ -237,22 +293,19 @@ export default function DriverSignupPage() {
                   <button className="px-6 py-2 text-xs font-bold uppercase border border-primary text-primary rounded hover:bg-primary-container hover:text-on-primary-container transition-colors active:scale-95 transition-transform">
                     Save Draft
                   </button>
-                 <a href="/driver/dashboard">
-                    <button className="px-8 py-2 text-xs font-bold uppercase bg-secondary text-white rounded hover:opacity-90 shadow-sm active:scale-95 transition-all flex items-center gap-1">
-                    Next Step
-                    <MdArrowForward className="text-sm" />
-                  </button>
-
-                 </a>
+                  <button type="submit" className="px-8 py-2 text-xs font-bold uppercase bg-secondary text-white rounded hover:opacity-90 shadow-sm active:scale-95 transition-all flex items-center gap-1">
+                     Next Step
+                     <MdArrowForward className="text-sm" />
+                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         </main>
       </div>
 
-      {/* Mobile Navigation (Hidden on LG+) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around items-center py-3 z-50">
+      {/* Mobile Navigation (Hidden on MD+) */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around items-center py-3 z-50">
         <div className="flex flex-col items-center text-indigo-900">
           <MdPersonAdd className="text-xl" />
           <span className="text-[10px] font-bold uppercase mt-1">Profile</span>

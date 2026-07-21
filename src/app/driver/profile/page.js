@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import {
   MdArrowBack,
   MdVerifiedUser,
@@ -18,6 +19,30 @@ import {
 } from "react-icons/md";
 
 export default function ProfilePage() {
+  const [data, setData] = useState({
+    name: "Alex Reynolds",
+    role: "Verified Heavy-Haul Driver",
+    rating: 4.98,
+    trips: 1284,
+    earned: "84.2k",
+    reliability: "99%",
+    vehicle: "Peterbilt 579",
+  });
+
+  useEffect(() => {
+    fetch("/api/driver/dashboard")
+      .then(res => res.ok ? res.json() : null)
+      .then(api => {
+        if (!api) return;
+        setData(prev => ({
+          ...prev,
+          name: api.user ? `${api.user.firstName || ""} ${api.user.lastName || ""}`.trim() || prev.name : prev.name,
+          rating: api.rating ?? prev.rating,
+        }));
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md px-4 md:px-6 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -46,7 +71,7 @@ export default function ProfilePage() {
                   className="rounded-2xl object-cover border-4 border-white shadow-lg"
                   unoptimized
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXQm8dsrcUyOQv9tqzMlIO_-R3wDUZZpVNVOz8lFsAkEpQCeqFzy0L2pOas9TCpd_SpZN6p4VwQFgM2JwRUWzn61Cdt9I9TMaoU4tjra9HQzEmmkrOQYyEyfSr2PdVSPv_JBMTgg_cmEZrEvZkU_ZHk_G3lamFQBiGemCD9CmpHYXURXx0xHqgWgNOc1tMQfXMmb1R4zjKY_pK8HWmUKfY8Tk5Vnub3_FkCy4dVAJwFut9DUSO2F-g4s8e3wfMpXDO87tJjbjKpVw"
-                  alt="Alex Reynolds"
+                  alt={data.name}
                 />
                 <div className="absolute -bottom-1 -right-1 bg-secondary-container text-white p-1.5 rounded-lg shadow-md">
                   <MdVerifiedUser className="text-sm" />
@@ -55,13 +80,13 @@ export default function ProfilePage() {
             </div>
 
             <div className="text-center mb-6">
-              <h2 className="font-bold text-xl text-slate-900">Alex Reynolds</h2>
+              <h2 className="font-bold text-xl text-slate-900">{data.name}</h2>
               <div className="flex items-center justify-center gap-2 mt-1">
-                <span className="text-xs font-bold text-primary-container uppercase tracking-wider">Verified Heavy-Haul Driver</span>
+                <span className="text-xs font-bold text-primary-container uppercase tracking-wider">{data.role}</span>
                 <span className="text-slate-300">|</span>
                 <div className="flex items-center gap-1 text-secondary-container">
                   <MdStar className="text-sm" />
-                  <span className="font-bold text-sm">4.98</span>
+                  <span className="font-bold text-sm">{data.rating}</span>
                 </div>
               </div>
             </div>
@@ -76,15 +101,15 @@ export default function ProfilePage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-4 mt-6">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow">
-            <p className="font-black text-2xl text-primary">1,284</p>
+            <p className="font-black text-2xl text-primary">{data.trips.toLocaleString()}</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Trips</p>
           </div>
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow">
-            <p className="font-black text-2xl text-primary">$84.2k</p>
+            <p className="font-black text-2xl text-primary">{data.earned}</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Earned</p>
           </div>
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow">
-            <p className="font-black text-2xl text-primary">99%</p>
+            <p className="font-black text-2xl text-primary">{data.reliability}</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Reliability</p>
           </div>
         </div>
@@ -116,7 +141,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-slate-900">Vehicle Details</p>
-                  <p className="text-xs text-slate-500">Peterbilt 579, Maintenance</p>
+                  <p className="text-xs text-slate-500">{data.vehicle}, Maintenance</p>
                 </div>
               </div>
               <MdChevronRight className="text-slate-400 group-hover:text-primary-container transition-colors" />
@@ -196,12 +221,6 @@ export default function ProfilePage() {
           </button>
         </div>
       </main>
-
-
     </div>
   );
 }
-
-
-
-

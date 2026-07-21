@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import {
   MdArrowBack,
   MdVerifiedUser,
@@ -20,6 +21,17 @@ import {
 } from "react-icons/md";
 
 export default function SenderProfilePage() {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/sender/profile")
+      .then((r) => r.json())
+      .then((d) => { setProfile(d.user); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-lg font-semibold">Loading...</div>;
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md px-4 md:px-6 py-3 flex items-center gap-3 max-w-2xl mx-auto">
@@ -45,8 +57,8 @@ export default function SenderProfilePage() {
                   height={96}
                   className="rounded-2xl object-cover border-4 border-white shadow-lg"
                   unoptimized
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEc4H09DwkW-7P95Ie4QVjvuTS7eicg0zju47I15SaZ-w1r-OO-JKGKMHrMnvZA_CdopDf-y8XUKGWG8J78ABBh-_4raxjkEqHJiaYEszHiQrSoC2IS8iDyyZuwq5gTwmzpCYiCahP-YDeCU3Hy9zAs8zjHvl8NxfAQMOL7o9SmywKYicKytNHwJ_MnAiCLARDwyNmPFF1c2WHIKXxKqr9kp9VjfSV_vY__12uDMqPTOeg4yc50R3KLggzfHRjKUhfI7O9jgofQgU"
-                  alt="Alexander Sterling"
+                  src={profile?.avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuCEc4H09DwkW-7P95Ie4QVjvuTS7eicg0zju47I15SaZ-w1r-OO-JKGKMHrMnvZA_CdopDf-y8XUKGWG8J78ABBh-_4raxjkEqHJiaYEszHiQrSoC2IS8iDyyZuwq5gTwmzpCYiCahP-YDeCU3Hy9zAs8zjHvl8NxfAQMOL7o9SmywKYicKytNHwJ_MnAiCLARDwyNmPFF1c2WHIKXxKqr9kp9VjfSV_vY__12uDMqPTOeg4yc50R3KLggzfHRjKUhfI7O9jgofQgU"}
+                  alt={profile?.name || "User"}
                 />
                 <div className="absolute -bottom-1 -right-1 bg-secondary-container text-white p-1.5 rounded-lg shadow-md">
                   <MdVerifiedUser className="text-sm" />
@@ -55,21 +67,21 @@ export default function SenderProfilePage() {
             </div>
 
             <div className="text-center mb-6">
-              <h2 className="font-bold text-xl text-slate-900">Alexander Sterling</h2>
+              <h2 className="font-bold text-xl text-slate-900">{profile?.name || "User"}</h2>
               <div className="flex items-center justify-center gap-2 mt-1">
                 <span className="text-xs font-bold text-primary-container uppercase tracking-wider">Verified Sender</span>
                 <span className="text-slate-300">|</span>
                 <div className="flex items-center gap-1 text-secondary-container">
                   <MdStar className="text-sm" />
-                  <span className="font-bold text-sm">4.92</span>
+                  <span className="font-bold text-sm">{profile?.rating || "4.9"}</span>
                 </div>
               </div>
               <div className="flex items-center justify-center gap-1 mt-1.5 text-xs text-slate-500">
                 <MdLocationOn className="text-sm" />
-                <span>Chicago, IL</span>
+                <span>{profile?.location || "Chicago, IL"}</span>
                 <span className="text-slate-300 mx-1">|</span>
                 <MdBusiness className="text-sm" />
-                <span>Sterling Global Freight</span>
+                <span>{profile?.company || "Sender Company"}</span>
               </div>
             </div>
 
@@ -83,15 +95,15 @@ export default function SenderProfilePage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-4 mt-6">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow">
-            <p className="font-black text-2xl text-primary">1,284</p>
+            <p className="font-black text-2xl text-primary">{profile?.totalShipments?.toLocaleString() || "1,284"}</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Shipments</p>
           </div>
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow">
-            <p className="font-black text-2xl text-primary">$284k</p>
+            <p className="font-black text-2xl text-primary">{profile?.totalSpent || "$284k"}</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Spent</p>
           </div>
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow">
-            <p className="font-black text-2xl text-primary">99.8%</p>
+            <p className="font-black text-2xl text-primary">{profile?.successRate || "99.8%"}</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Success</p>
           </div>
         </div>
@@ -123,7 +135,7 @@ export default function SenderProfilePage() {
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-slate-900">Company Details</p>
-                  <p className="text-xs text-slate-500">Sterling Global Freight</p>
+                  <p className="text-xs text-slate-500">{profile?.company || "Sterling Global Freight"}</p>
                 </div>
               </div>
               <MdChevronRight className="text-slate-400 group-hover:text-primary-container transition-colors" />

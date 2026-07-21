@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState, useEffect } from "react";
 import {
   MdPerson,
   MdSecurity,
@@ -14,6 +15,26 @@ import {
 } from "react-icons/md";
 
 export default function SenderSettings() {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/sender/profile")
+      .then((r) => r.json())
+      .then((d) => { setProfile(d.user); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    await fetch("/api/sender/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(profile),
+    });
+  };
+
+  if (loading) return <div className="text-center py-20 text-lg font-semibold">Loading...</div>;
+
   return (
     <div className="space-y-8">
 
@@ -32,7 +53,7 @@ export default function SenderSettings() {
                 <MdPerson className="text-xl" />
                 Profile Information
               </h3>
-              <button className="bg-gradient-to-r from-primary-container to-primary text-white px-5 py-2 rounded-xl text-[11px] font-bold tracking-wider transition-all hover:shadow-lg active:scale-95 shadow-sm">
+              <button onClick={handleSave} className="bg-gradient-to-r from-primary-container to-primary text-white px-5 py-2 rounded-xl text-[11px] font-bold tracking-wider transition-all hover:shadow-lg active:scale-95 shadow-sm">
                 SAVE CHANGES
               </button>
             </div>
@@ -60,25 +81,31 @@ export default function SenderSettings() {
                   <input
                     className="w-full border border-slate-200 focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container rounded-xl px-4 py-3 text-sm bg-white transition-all outline-none"
                     type="text"
-                    defaultValue="Alexander Sterling"
+                    value={profile?.firstName ? `${profile.firstName} ${profile.lastName || ""}`.trim() : ""}
+                    onChange={(e) => {
+                      const parts = e.target.value.split(" ");
+                      setProfile({ ...profile, firstName: parts[0] || "", lastName: parts.slice(1).join(" ") || "" });
+                    }}
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Email Address</label>
-                    <input
-                      className="w-full border border-slate-200 focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container rounded-xl px-4 py-3 text-sm bg-white transition-all outline-none"
-                      type="email"
-                      defaultValue="a.sterling@kinetic-logistics.com"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Phone Number</label>
-                    <input
-                      className="w-full border border-slate-200 focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container rounded-xl px-4 py-3 text-sm bg-white transition-all outline-none"
-                      type="tel"
-                      defaultValue="+1 (555) 902-4433"
-                    />
+                  <input
+                    className="w-full border border-slate-200 focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container rounded-xl px-4 py-3 text-sm bg-white transition-all outline-none"
+                    type="email"
+                    value={profile?.email || ""}
+                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Phone Number</label>
+                  <input
+                    className="w-full border border-slate-200 focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container rounded-xl px-4 py-3 text-sm bg-white transition-all outline-none"
+                    type="tel"
+                    value={profile?.phone || ""}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  />
                   </div>
                 </div>
               </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState, useRef, useEffect, Suspense } from "react";
 import {
   MdSearch,
   MdSend,
@@ -22,45 +23,110 @@ import {
   MdPerson,
 } from "react-icons/md";
 
-const conversations = [
-  { id: 1, name: "Marcus Williams", role: "Independent Carrier", rating: 4.9, avatar: "MW", lastMessage: "Is the pickup window firm for 08:00?", time: "2m ago", unread: 1, online: true, typing: false, trip: "Chicago → Denver", load: "HHF-89210" },
-  { id: 2, name: "Sarah Jenkins", role: "Fleet Owner", rating: 4.8, avatar: "SJ", lastMessage: "Everything is loaded and secured.", time: "1h ago", unread: 0, online: true, typing: false, trip: "Kigali → Huye", load: "L-55219" },
-  { id: 3, name: "David Chen", role: "Driver", rating: 4.85, avatar: "DC", lastMessage: "Sending POD now.", time: "3h ago", unread: 0, online: false, typing: false, trip: "Muhanga → Kigali", load: "K-90032" },
-  { id: 4, name: "Jessica Park", role: "Freight Broker", rating: 4.76, avatar: "JP", lastMessage: "Thanks for the quick delivery!", time: "Mon", unread: 2, online: false, typing: false, trip: "Cleveland → Chicago", load: "C-77214" },
-  { id: 5, name: "Robert Kim", role: "Heavy-Haul Driver", rating: 4.95, avatar: "RK", lastMessage: "I can take the return trip tomorrow", time: "Sun", unread: 0, online: true, typing: false, trip: "Denver → Chicago", load: "HHF-89345" },
-  { id: 6, name: "Lisa Thompson", role: "Dispatch Coordinator", rating: 4.88, avatar: "LT", lastMessage: "New shipment ready at dock 7", time: "Sun", unread: 0, online: false, typing: false, trip: "System", load: "N-55102" },
-];
-
-const initialMessages = {
-  1: [
-    { id: 1, sender: "other", text: "Hello, I'm interested in the load HHF-89210. Is the pickup window firm for 08:00? I'll be coming from the Chicago hub.", time: "09:12 AM", status: "read" },
-    { id: 2, sender: "me", text: "Good morning, Marcus. Yes, 08:00 is strict as the loading dock is reserved. Can you guarantee arrival by then?", time: "09:15 AM", status: "read" },
-    { id: 3, sender: "other", text: "Understood. I can make it. However, with the fuel costs currently, I'd need to adjust the rate to $2,450 for this lane.", time: "09:18 AM", status: "read" },
-  ],
-  2: [
-    { id: 1, sender: "other", text: "Shipment ready at dock 7, all paperwork is complete.", time: "08:30 AM", status: "read" },
-    { id: 2, sender: "me", text: "Great, I'll have a carrier there within the hour.", time: "08:35 AM", status: "read" },
-    { id: 3, sender: "other", text: "Everything is loaded and secured.", time: "09:00 AM", status: "read" },
-  ],
-};
+const initialMessages = {};
 
 export default function SenderMessages() {
-  const [selectedChat, setSelectedChat] = useState(conversations[0]);
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center text-lg font-semibold">Loading...</div>}>
+      <SenderMessagesContent />
+    </Suspense>
+  );
+}
+
+function SenderMessagesContent() {
+  const searchParams = useSearchParams();
+  const conversationParam = searchParams.get("conversation");
+  const [conversations, setConversations] = useState([]);
+  const [selectedChat, setSelectedChat] = useState(null);
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [allMessages, setAllMessages] = useState(initialMessages);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
+
+  function formatTime(date) {
+    if (!date) return "";
+    const d = new Date(date);
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 86400000) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+
+  function mapConversation(c) {
+    const other = c.otherUser || {};
+    const shipment = c.shipment || {};
+    return {
+      id: c._id,
+      name: [other.firstName, other.lastName].filter(Boolean).join(" ") || "Unknown",
+      avatar: (other.firstName?.[0] || "?").toUpperCase(),
+      lastMessage: c.lastMessage || "",
+      unread: 0,
+      online: other.isOnline || false,
+      role: other.role === "driver" ? "Driver" : other.role === "sender" ? "Sender" : "",
+      rating: other.rating ? other.rating.toFixed(2) : "—",
+      load: shipment.trackingId || "",
+      trip: "",
+      time: formatTime(c.lastMessageTime),
+      typing: false,
+      _original: c,
+    };
+  }
+
+  useEffect(() => {
+    fetch("/api/sender/messages")
+      .then((r) => r.json())
+      .then((d) => {
+        const mapped = (d.conversations || []).map(mapConversation);
+        setConversations(mapped);
+        if (mapped.length > 0) {
+          if (conversationParam) {
+            const match = mapped.find((c) => c.id === conversationParam);
+            if (match) setSelectedChat(match);
+            else setSelectedChat(mapped[0]);
+          } else if (!selectedChat) {
+            setSelectedChat(mapped[0]);
+          }
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [conversationParam]);
+
+  useEffect(() => {
+    if (!selectedChat) return;
+    const fetchMessages = () => {
+      fetch(`/api/sender/messages/${selectedChat.id}`)
+        .then((r) => r.json())
+        .then((d) => {
+          const msgs = (d.messages || []).map((m, i) => ({
+            id: m._id || i,
+            sender: m.sender?._id === selectedChat._original?.otherUser?._id ? "other" : "me",
+            text: m.text,
+            time: m.createdAt
+              ? new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              : "",
+            status: m.status || "sent",
+          }));
+          setAllMessages((prev) => ({ ...prev, [selectedChat.id]: msgs }));
+        })
+        .catch(() => {});
+    };
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
+  }, [selectedChat?.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [allMessages, selectedChat]);
 
-  const currentMessages = allMessages[selectedChat.id] || [];
+  const currentMessages = selectedChat ? allMessages[selectedChat.id] || [] : [];
 
   const handleSend = () => {
-    if (newMessage.trim()) {
+    if (newMessage.trim() && selectedChat) {
       const msg = {
         id: (currentMessages.length || 0) + 1,
         sender: "me",
@@ -72,6 +138,11 @@ export default function SenderMessages() {
         ...prev,
         [selectedChat.id]: [...(prev[selectedChat.id] || []), msg],
       }));
+      fetch(`/api/sender/messages/${selectedChat.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: newMessage }),
+      });
       setNewMessage("");
     }
   };
@@ -83,11 +154,30 @@ export default function SenderMessages() {
     }
   };
 
+  if (loading) return <div className="h-screen flex items-center justify-center text-lg font-semibold">Loading...</div>;
+
+  if (!selectedChat && conversations.length === 0) {
+    return (
+      <div className="h-screen flex bg-white">
+        <div className="w-full md:w-80 lg:w-96 bg-white border-r border-slate-200 flex flex-col">
+          <div className="p-4 bg-primary-container text-white">
+            <h2 className="text-xl font-bold">Messages</h2>
+          </div>
+          <div className="flex-1 flex items-center justify-center text-slate-500">No conversations yet</div>
+        </div>
+      </div>
+    );
+  }
+
   const filteredConversations = conversations.filter(conv =>
     conv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.load.toLowerCase().includes(searchQuery.toLowerCase())
+    (conv.lastMessage && conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (conv.load && conv.load.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  if (!selectedChat && conversations.length > 0) {
+    setSelectedChat(conversations[0]);
+  }
 
   return (
     <div className="h-screen flex bg-white">
@@ -292,7 +382,7 @@ export default function SenderMessages() {
               <div className="p-5 space-y-6">
                 <div>
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Load ID</p>
-                  <p className="text-sm font-bold text-primary-container">{selectedChat.load}</p>
+                  <p className="text-sm font-bold text-primary-container">{selectedChat.load || "—"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Route</p>
@@ -301,18 +391,32 @@ export default function SenderMessages() {
                     <div className="relative">
                       <span className="absolute -left-5 top-0.5 w-2.5 h-2.5 bg-secondary rounded-full border-2 border-white"></span>
                       <p className="text-xs font-bold text-on-surface">Pickup</p>
-                      <p className="text-xs text-slate-500">Chicago Logistics Hub</p>
+                      <p className="text-xs text-slate-500">
+                        {[
+                          selectedChat._original?.shipment?.origin?.city,
+                          selectedChat._original?.shipment?.origin?.state,
+                        ].filter(Boolean).join(", ") || "—"}
+                      </p>
                     </div>
                     <div className="relative">
                       <span className="absolute -left-5 top-0.5 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white"></span>
                       <p className="text-xs font-bold text-on-surface">Delivery</p>
-                      <p className="text-xs text-slate-500">Denver Distribution Center</p>
+                      <p className="text-xs text-slate-500">
+                        {[
+                          selectedChat._original?.shipment?.destination?.city,
+                          selectedChat._original?.shipment?.destination?.state,
+                        ].filter(Boolean).join(", ") || "—"}
+                      </p>
                     </div>
                   </div>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Rate</p>
-                  <p className="text-lg font-bold text-secondary">$2,450.00</p>
+                  <p className="text-lg font-bold text-secondary">
+                    {selectedChat._original?.shipment?.pricing?.amount
+                      ? `$${selectedChat._original.shipment.pricing.amount.toLocaleString()}`
+                      : "—"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Carrier</p>
@@ -324,7 +428,7 @@ export default function SenderMessages() {
         </div>
 
         {/* Input Area */}
-        {currentMessages.length > 0 && (
+        {selectedChat && (
           <div className="px-4 py-3 bg-white border-t border-slate-200 flex-shrink-0">
             <div className="flex gap-2 mb-2.5 overflow-x-auto pb-1">
               {["Sounds good", "Can we do $400?", "Confirming details", "On my way"].map((reply) => (

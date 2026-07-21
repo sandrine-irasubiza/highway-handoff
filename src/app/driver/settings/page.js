@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState, useEffect } from "react";
 import {
   MdPerson,
   MdPhotoCamera,
@@ -20,9 +21,15 @@ import {
   MdExpandMore,
   MdChevronRight,
 } from "react-icons/md";
-import { useState } from "react";
 
 export default function DriverSettings() {
+  const [profile, setProfile] = useState({
+    fullName: "Marcus Sterling",
+    employeeId: "HHO-992-DELTA",
+    email: "m.sterling@highwayhandoff.com",
+    phone: "+1 (555) 012-3456",
+  });
+
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
@@ -38,6 +45,19 @@ export default function DriverSettings() {
     restBreakReminders: true,
     autoAccept: false,
   });
+
+  useEffect(() => {
+    fetch("/api/driver/dashboard")
+      .then(res => res.ok ? res.json() : null)
+      .then(api => {
+        if (!api?.user) return;
+        setProfile(prev => ({
+          ...prev,
+          fullName: `${api.user.firstName || ""} ${api.user.lastName || ""}`.trim() || prev.fullName,
+        }));
+      })
+      .catch(() => {});
+  }, []);
 
   const toggle = (section, key) => {
     if (section === "notifications") {
@@ -105,7 +125,8 @@ export default function DriverSettings() {
                     <input
                       className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container outline-none transition-all"
                       type="text"
-                      defaultValue="Marcus Sterling"
+                      defaultValue={profile.fullName}
+                      key={profile.fullName}
                     />
                   </div>
                   <div className="space-y-1">
@@ -113,7 +134,7 @@ export default function DriverSettings() {
                     <input
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono text-slate-500 cursor-not-allowed"
                       type="text"
-                      defaultValue="HHO-992-DELTA"
+                      defaultValue={profile.employeeId}
                       readOnly
                     />
                   </div>
@@ -122,7 +143,8 @@ export default function DriverSettings() {
                     <input
                       className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container outline-none transition-all"
                       type="email"
-                      defaultValue="m.sterling@highwayhandoff.com"
+                      defaultValue={profile.email}
+                      key={profile.email}
                     />
                   </div>
                   <div className="space-y-1">
@@ -130,7 +152,8 @@ export default function DriverSettings() {
                     <input
                       className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-on-surface focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container outline-none transition-all"
                       type="tel"
-                      defaultValue="+1 (555) 012-3456"
+                      defaultValue={profile.phone}
+                      key={profile.phone}
                     />
                   </div>
                 </div>
@@ -470,8 +493,8 @@ export default function DriverSettings() {
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Default Payout Method</label>
                 <div className="relative">
                   <select className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-on-surface appearance-none focus:ring-2 focus:ring-primary-container/20 focus:border-primary-container outline-none transition-all">
-                    <option>Bank Transfer (•••• 4421)</option>
-                    <option>Mobile Wallet (•••• 8902)</option>
+                    <option>Bank Transfer ({'\u2022\u2022\u2022\u2022'} 4421)</option>
+                    <option>Mobile Wallet ({'\u2022\u2022\u2022\u2022'} 8902)</option>
                     <option>Direct Deposit - Wire</option>
                   </select>
                   <MdExpandMore className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-lg" />

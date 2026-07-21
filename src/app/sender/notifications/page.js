@@ -1,143 +1,112 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   MdNotifications,
   MdDoneAll,
   MdLocalShipping,
   MdPayments,
-  MdTaskAlt,
+  MdCheckCircle,
   MdChatBubble,
   MdWarning,
+  MdFlashOn,
   MdClose,
   MdExpandMore,
 } from "react-icons/md";
 
-const notifications = [
-  {
-    id: 1,
-    type: "shipment",
-    title: "Shipment Picked Up",
-    time: "2 minutes ago",
-    accent: "border-primary",
-    icon: MdLocalShipping,
-    iconBg: "bg-blue-50",
-    iconColor: "text-primary",
-    description: (
-      <>
-        Driver <span className="font-semibold">Marco Rossi</span> has successfully picked up Shipment{" "}
-        <span className="font-semibold">#HH-29384</span> from the Chicago Logistics Hub. Estimated delivery is now 4:00 PM EST.
-      </>
-    ),
-    actions: (
-      <>
-        <button className="bg-primary text-white text-[12px] font-bold tracking-wider px-6 py-2 rounded-lg hover:opacity-90 transition-all">View Shipment</button>
-        <button className="border border-primary text-primary text-[12px] font-bold tracking-wider px-6 py-2 rounded-lg hover:bg-slate-50 transition-all">Track Real-time</button>
-      </>
-    ),
-    unread: true,
-  },
-  {
-    id: 2,
-    type: "offer",
-    title: "New Offer Received",
-    time: "1 hour ago",
-    accent: "border-secondary-container",
-    icon: MdPayments,
-    iconBg: "bg-orange-50",
-    iconColor: "text-secondary-container",
-    description: (
-      <>
-        You have a new price negotiation update from <span className="font-semibold">SwiftLink Logistics</span> for the Detroit route. Their latest offer is{" "}
-        <span className="font-bold text-secondary-container">$1,250.00</span>.
-      </>
-    ),
-    actions: (
-      <>
-        <button className="bg-secondary-container text-white text-[12px] font-bold tracking-wider px-6 py-2 rounded-lg hover:opacity-90 transition-all">Review Offer</button>
-        <button className="text-slate-500 text-[12px] font-bold tracking-wider px-6 py-2 rounded-lg hover:bg-slate-50 transition-all">Counter Offer</button>
-      </>
-    ),
-    unread: true,
-  },
-  {
-    id: 3,
-    type: "delivery",
-    title: "Delivery Confirmed",
-    time: "Yesterday, 5:42 PM",
-    accent: "border-slate-200",
-    icon: MdTaskAlt,
-    iconBg: "bg-green-50",
-    iconColor: "text-green-700",
-    description: (
-      <>
-        Shipment <span className="font-semibold">#HH-29312</span> has been delivered to the final destination in Newark. Proof of Delivery (POD) has been uploaded and is available for download.
-      </>
-    ),
-    actions: (
-      <>
-        <button className="bg-slate-200 text-slate-700 text-[12px] font-bold tracking-wider px-6 py-2 rounded-lg cursor-not-allowed">POD Downloaded</button>
-        <button className="text-slate-500 text-[12px] font-bold tracking-wider px-6 py-2 rounded-lg hover:bg-white transition-all">Archive</button>
-      </>
-    ),
-    unread: false,
-  },
-  {
-    id: 4,
-    type: "message",
-    title: "New Message from Carrier",
-    time: "4 hours ago",
-    accent: "border-blue-400",
-    icon: MdChatBubble,
-    iconBg: "bg-blue-50",
-    iconColor: "text-blue-400",
-    description: (
-      <>
-        <span className="font-semibold italic">&ldquo;The dock entrance at the receiver&apos;s end is currently blocked by construction. Expecting a 20-minute delay for unloading.&rdquo;</span> &mdash; Sarah J., Fleet Dispatch
-      </>
-    ),
-    actions: (
-      <>
-        <button className="bg-primary text-white text-[12px] font-bold tracking-wider px-6 py-2 rounded-lg hover:opacity-90 transition-all">Reply Now</button>
-        <button className="text-slate-500 text-[12px] font-bold tracking-wider px-6 py-2 rounded-lg hover:bg-slate-50 transition-all">Mute Conversation</button>
-      </>
-    ),
-    unread: true,
-  },
-  {
-    id: 5,
-    type: "account",
-    title: "Insurance Expiring Soon",
-    time: "Today, 8:00 AM",
-    accent: "border-error",
-    icon: MdWarning,
-    iconBg: "bg-error-container",
-    iconColor: "text-error",
-    description: (
-      <>
-        Your liability insurance certificate for <span className="font-semibold">Hand-Off Primary</span> is set to expire in 3 days. Please upload a renewed certificate to avoid interruption in cargo booking.
-      </>
-    ),
-    actions: (
-      <button className="bg-error text-white text-[12px] font-bold tracking-wider px-6 py-2 rounded-lg hover:opacity-90 transition-all">Upload Document</button>
-    ),
-    unread: true,
-  },
-];
+const typeConfig = {
+  match: { accent: "border-secondary-container", icon: MdFlashOn, iconBg: "bg-yellow-50", iconColor: "text-yellow-700", typeLabel: "Match", typeStyle: "bg-yellow-50 text-yellow-700" },
+  shipment: { accent: "border-primary", icon: MdLocalShipping, iconBg: "bg-blue-50", iconColor: "text-primary", typeLabel: "Shipment", typeStyle: "bg-blue-50 text-primary" },
+  payment: { accent: "border-green-500", icon: MdPayments, iconBg: "bg-green-50", iconColor: "text-green-700", typeLabel: "Payment", typeStyle: "bg-green-50 text-green-700" },
+  message: { accent: "border-blue-400", icon: MdChatBubble, iconBg: "bg-blue-50", iconColor: "text-blue-400", typeLabel: "Message", typeStyle: "bg-blue-50 text-blue-400" },
+  system: { accent: "border-error", icon: MdWarning, iconBg: "bg-red-50", iconColor: "text-error", typeLabel: "System", typeStyle: "bg-red-50 text-error" },
+  rating: { accent: "border-slate-200", icon: MdCheckCircle, iconBg: "bg-green-50", iconColor: "text-green-700", typeLabel: "Rating", typeStyle: "bg-green-50 text-green-700" },
+};
+
+const defaultIcon = MdNotifications;
 
 const tabs = ["All", "Shipments", "Messages", "Account"];
 
-export default function SenderNotifications() {
-  const [activeTab, setActiveTab] = useState("All");
+const typeFilterMap = {
+  All: null,
+  Shipments: "match",
+  Messages: "message",
+  Account: "account",
+};
 
-  const filtered = activeTab === "All"
-    ? notifications
-    : notifications.filter((n) => {
-        if (activeTab === "Shipments") return n.type === "shipment" || n.type === "delivery" || n.type === "offer";
-        if (activeTab === "Messages") return n.type === "message";
-        if (activeTab === "Account") return n.type === "account";
-        return true;
-      });
+function formatTimeAgo(date) {
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} mins ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+}
+
+export default function SenderNotifications() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("All");
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/sender/notifications")
+      .then((r) => r.json())
+      .then((d) => {
+        setNotifications((d.notifications || []).map((n) => {
+          const config = typeConfig[n.type] || typeConfig.system;
+          return {
+            id: n._id,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            link: n.link,
+            time: n.createdAt ? formatTimeAgo(new Date(n.createdAt)) : "Just now",
+            unread: !n.read,
+            ...config,
+          };
+        }));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const unreadCount = notifications.filter((n) => n.unread).length;
+
+  const filtered =
+    activeTab === "All"
+      ? notifications
+      : notifications.filter((n) => {
+          if (activeTab === "Shipments") return n.type === "match" || n.type === "shipment";
+          if (activeTab === "Messages") return n.type === "message";
+          if (activeTab === "Account") return false;
+          return true;
+        });
+
+  const markAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    fetch("/api/sender/notifications", { method: "PATCH" }).catch(() => {});
+  };
+
+  const markAsRead = (id) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+    );
+  };
+
+  const handleClick = (n) => {
+    if (!n.unread) {
+      if (n.link) router.push(n.link);
+      return;
+    }
+    markAsRead(n.id);
+    if (n.link) router.push(n.link);
+  };
+
+  if (loading) return <div className="max-w-5xl mx-auto py-20 text-center text-lg font-semibold">Loading...</div>;
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -149,13 +118,20 @@ export default function SenderNotifications() {
           </div>
           <h2 className="text-3xl font-bold text-primary flex items-center gap-3">
             Notifications
-            <span className="bg-primary text-white text-sm px-3 py-1 rounded-full font-bold">12</span>
+            {unreadCount > 0 && (
+              <span className="bg-primary text-white text-sm px-3 py-1 rounded-full font-bold">{unreadCount}</span>
+            )}
           </h2>
         </div>
-        <button className="flex items-center gap-1 text-primary text-[12px] font-bold tracking-wider hover:underline active:scale-95 transition-all">
-          <MdDoneAll className="text-sm" />
-          Mark all as read
-        </button>
+        {unreadCount > 0 && (
+          <button
+            onClick={markAllAsRead}
+            className="flex items-center gap-1 text-primary text-[12px] font-bold tracking-wider hover:underline active:scale-95 transition-all"
+          >
+            <MdDoneAll className="text-sm" />
+            Mark all as read
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -177,41 +153,75 @@ export default function SenderNotifications() {
 
       {/* Notification Cards */}
       <div className="space-y-4">
-        {filtered.map((n) => {
-          const Icon = n.icon;
-          return (
-            <div
-              key={n.id}
-              className={`bg-white p-6 rounded-xl shadow-sm border-l-4 ${n.accent} flex flex-col md:flex-row gap-6 items-start transition-all hover:shadow-md ${
-                !n.unread ? "bg-slate-50/50 border border-slate-200 opacity-75 grayscale-[0.5]" : ""
-              }`}
-            >
-              <div className={`${n.iconBg} p-4 rounded-lg`}>
-                <Icon className={`${n.iconColor} text-2xl`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start mb-1">
-                  <h4 className="text-lg font-semibold text-on-surface">{n.title}</h4>
-                  <span className="text-xs text-slate-400 flex-shrink-0 ml-2">{n.time}</span>
-                </div>
-                <p className="text-base text-slate-600 mb-4 max-w-2xl">{n.description}</p>
-                <div className="flex flex-wrap gap-2">{n.actions}</div>
-              </div>
-              <button className="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0">
-                <MdClose className="text-xl" />
-              </button>
+        {filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MdNotifications className="text-3xl text-slate-400" />
             </div>
-          );
-        })}
+            <p className="text-slate-500 font-semibold text-lg">No notifications</p>
+            <p className="text-slate-400 text-sm mt-1">You&apos;re all caught up!</p>
+          </div>
+        ) : (
+          filtered.map((n) => {
+            const Icon = n.icon || defaultIcon;
+            return (
+              <div
+                key={n.id}
+                onClick={() => handleClick(n)}
+                className={`bg-white p-6 rounded-xl shadow-sm border-l-4 ${n.accent} flex flex-col md:flex-row gap-6 items-start transition-all hover:shadow-md cursor-pointer ${
+                  !n.unread
+                    ? "bg-slate-50/50 border border-slate-200 opacity-75 grayscale-[0.5]"
+                    : ""
+                }`}
+              >
+                <div className={`${n.iconBg} p-4 rounded-lg`}>
+                  <Icon className={`${n.iconColor} text-2xl`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-lg font-semibold text-on-surface">{n.title}</h4>
+                      <span className={`inline-block px-2 py-0.5 ${n.typeStyle} text-[10px] font-bold uppercase rounded`}>
+                        {n.typeLabel}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-400 flex-shrink-0 ml-2">{n.time}</span>
+                  </div>
+                  <p className="text-base text-slate-600 mb-4 max-w-2xl">{n.message}</p>
+                  {n.link && n.link.includes("/messages") && (
+                    <div className="flex flex-wrap gap-2">
+                      <span
+                        onClick={(e) => { e.stopPropagation(); router.push(n.link); }}
+                        className="text-[12px] font-bold tracking-wider px-6 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-all inline-block"
+                      >
+                        Message Driver
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0"
+                >
+                  <MdClose className="text-xl" />
+                </button>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Load More */}
-      <div className="mt-8 flex justify-center">
-        <button className="flex items-center gap-1 text-slate-500 text-[12px] font-bold tracking-wider hover:text-primary transition-colors py-6">
-          Load Older Notifications
-          <MdExpandMore className="text-sm" />
-        </button>
-      </div>
+      {filtered.length > 0 && (
+        <div className="mt-8 flex justify-center">
+          <button className="flex items-center gap-1 text-slate-500 text-[12px] font-bold tracking-wider hover:text-primary transition-colors py-6">
+            Load Older Notifications
+            <MdExpandMore className="text-sm" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

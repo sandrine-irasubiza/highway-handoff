@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   MdPendingActions,
   MdTaskAlt,
@@ -14,6 +15,19 @@ import {
 } from "react-icons/md";
 
 export default function SenderDashboard() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/sender/dashboard")
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="text-center py-20 text-lg font-semibold">Loading...</div>;
+  if (!data) return <div className="text-center py-20 text-lg font-semibold text-error">Failed to load dashboard data.</div>;
+
   return (
     <>
         {/* Hero Greeting */}
@@ -23,7 +37,7 @@ export default function SenderDashboard() {
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
               <span className="text-xs font-bold uppercase tracking-widest text-green-600">Online</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-primary">Welcome back, Sarah</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-primary">Welcome back, {data.userName}</h1>
             <p className="text-body-md text-on-surface-variant mt-2">You have <span className="font-bold text-secondary-container">3 shipments</span> that are ready for a Smart Match hand-off today.</p>
           </div>
           <button className="bg-gradient-to-r from-secondary-container to-orange-500 text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 active:scale-95">
@@ -41,7 +55,7 @@ export default function SenderDashboard() {
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-outline">Active Shipments</p>
               <div className="flex items-baseline gap-2">
-                <h2 className="text-3xl font-bold text-primary">24</h2>
+                <h2 className="text-3xl font-bold text-primary">{data.activeShipments}</h2>
                 <span className="text-xs text-green-600 font-semibold">+3 today</span>
               </div>
             </div>
@@ -53,7 +67,7 @@ export default function SenderDashboard() {
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-outline">Completed This Month</p>
               <div className="flex items-baseline gap-2">
-                <h2 className="text-3xl font-bold text-primary">142</h2>
+                <h2 className="text-3xl font-bold text-primary">{data.completedThisMonth}</h2>
                 <span className="text-xs text-green-600 font-semibold">+12% vs last month</span>
               </div>
             </div>
@@ -65,7 +79,7 @@ export default function SenderDashboard() {
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-outline">Total Saved</p>
               <div className="flex items-baseline gap-2">
-                <h2 className="text-3xl font-bold text-primary">$4,821.50</h2>
+                <h2 className="text-3xl font-bold text-primary">${data.totalSaved.toFixed(2)}</h2>
                 <span className="text-xs text-green-600 font-semibold">This quarter</span>
               </div>
             </div>
@@ -82,8 +96,8 @@ export default function SenderDashboard() {
               </div>
               <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
               <div className="relative z-10">
-                <h3 className="text-2xl font-bold mb-1">Send a Package</h3>
-                <p className="text-on-primary-container text-sm mb-6 opacity-80">Enter pickup and delivery details to find the best match.</p>
+                <h3 className="text-xl md:text-2xl font-bold mb-1">Send a Package</h3>
+                <p className="text-on-primary-container text-xs md:text-sm mb-4 md:mb-6 opacity-80">Enter pickup and delivery details to find the best match.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold uppercase tracking-widest text-on-primary-container">Pickup Location</label>

@@ -9,6 +9,7 @@ export const metadata = {
   title: "Highway Handoff System",
   description:
     "A modern logistics and transport management platform designed to provide secure, fast, and reliable delivery coordination solutions.",
+  icons: [{ rel: "icon", url: "/images/one.png" }],
 };
 
 export default function RootLayout({ children }) {

@@ -12,11 +12,15 @@ import {
   MdSettings,
   MdLogout,
   MdClose,
+  MdHandshake,
+  MdAddLocation,
 } from "react-icons/md";
 
 const navItems = [
   { href: "/driver/dashboard", label: "Dashboard", icon: MdDashboard },
+  { href: "/driver/load-board", label: "Load Board", icon: MdHandshake },
   { href: "/driver/trips", label: "Trips", icon: MdLocalShipping },
+  { href: "/driver/create-trip", label: "Create Trip", icon: MdAddLocation },
   { href: "/driver/fleet", label: "Fleet", icon: MdDirectionsCar },
   { href: "/driver/earnings", label: "Earnings", icon: MdPayments },
   { href: "/driver/messages", label: "Messages", icon: MdForum },
@@ -83,10 +87,16 @@ export default function Sidebar({ isOpen, onClose }) {
             <p className="text-[10px] text-slate-500 uppercase font-semibold">#9822 • Active</p>
           </div>
         </div></a>
-        <Link href="/login" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-error hover:bg-red-50 transition-all mx-2 rounded-lg">
+        <button
+          onClick={async () => {
+            await fetch("/api/auth/logout", { method: "POST" });
+            window.location.href = "/login";
+          }}
+          className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-error hover:bg-red-50 transition-all mx-2 rounded-lg w-full text-left"
+        >
           <MdLogout className="text-xl" />
           <span className="text-sm font-medium">Sign Out</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );

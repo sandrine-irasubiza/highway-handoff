@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   MdNotifications,
   MdDoneAll,
@@ -13,107 +13,60 @@ import {
   MdExpandMore,
 } from "react-icons/md";
 
-const initialNotifications = [
-  {
-    id: 1,
-    type: "trip",
-    title: "New Smart Match Found",
-    message: "A premium delivery match from Chicago to Denver is available. Estimated earnings: $2,450.",
-    time: "Just now",
-    unread: true,
-    accent: "border-primary",
-    icon: MdLocalShipping,
-    iconBg: "bg-blue-50",
-    iconColor: "text-primary",
-    typeLabel: "Trip",
-    typeStyle: "bg-blue-50 text-primary",
-    actions: [
-      { label: "Accept Match", primary: true },
-      { label: "Details", primary: false },
-    ],
-  },
-  {
-    id: 2,
-    type: "payment",
-    title: "Deposit Confirmed",
-    message: "Payment for Trip #TX-9981 deposited to wallet. Funds available for withdrawal.",
-    time: "2 hours ago",
-    unread: true,
-    accent: "border-secondary-container",
-    icon: MdPayments,
-    iconBg: "bg-green-50",
-    iconColor: "text-green-700",
-    typeLabel: "Earnings",
-    typeStyle: "bg-green-50 text-green-700",
-    actions: [
-      { label: "View Statement", primary: false },
-    ],
-  },
-  {
-    id: 3,
-    type: "message",
-    title: "Mike R. sent a message",
-    message: "\u201CHey! Checking package dimensions for Chicago pickup. Need more clearance?\u201D",
-    time: "5 hours ago",
-    unread: false,
-    accent: "border-blue-400",
-    icon: MdChatBubble,
-    iconBg: "bg-blue-50",
-    iconColor: "text-blue-400",
-    typeLabel: "Message",
-    typeStyle: "bg-blue-50 text-blue-400",
-    actions: [
-      { label: "Reply", primary: true },
-    ],
-  },
-  {
-    id: 4,
-    type: "system",
-    title: "Document Renewal Required",
-    message: "Upload updated insurance by Oct 12 to avoid service interruptions.",
-    time: "Yesterday",
-    unread: false,
-    accent: "border-error",
-    icon: MdWarning,
-    iconBg: "bg-error-container",
-    iconColor: "text-error",
-    typeLabel: "System",
-    typeStyle: "bg-error-container text-error",
-    actions: [
-      { label: "Upload Now", primary: true },
-    ],
-  },
-  {
-    id: 5,
-    type: "trip",
-    title: "Trip Completed",
-    message: "Trip #TX-9978 to Milwaukee completed. Rate your experience and earn points.",
-    time: "2 days ago",
-    unread: false,
-    accent: "border-slate-200",
-    icon: MdCheckCircle,
-    iconBg: "bg-green-50",
-    iconColor: "text-green-700",
-    typeLabel: "Trip",
-    typeStyle: "bg-green-50 text-green-700",
-    actions: [
-      { label: "Rate Trip", primary: true },
-    ],
-  },
-];
+const typeConfig = {
+  shipment: { accent: "border-primary", icon: MdLocalShipping, iconBg: "bg-blue-50", iconColor: "text-primary", typeLabel: "Trip", typeStyle: "bg-blue-50 text-primary", actions: [{ label: "Accept Match", primary: true }, { label: "Details", primary: false }] },
+  payment: { accent: "border-secondary-container", icon: MdPayments, iconBg: "bg-green-50", iconColor: "text-green-700", typeLabel: "Earnings", typeStyle: "bg-green-50 text-green-700", actions: [{ label: "View Statement", primary: false }] },
+  message: { accent: "border-blue-400", icon: MdChatBubble, iconBg: "bg-blue-50", iconColor: "text-blue-400", typeLabel: "Message", typeStyle: "bg-blue-50 text-blue-400", actions: [{ label: "Reply", primary: true }] },
+  system: { accent: "border-error", icon: MdWarning, iconBg: "bg-error-container", iconColor: "text-error", typeLabel: "System", typeStyle: "bg-error-container text-error", actions: [{ label: "Upload Now", primary: true }] },
+  rating: { accent: "border-slate-200", icon: MdCheckCircle, iconBg: "bg-green-50", iconColor: "text-green-700", typeLabel: "Rating", typeStyle: "bg-green-50 text-green-700", actions: [{ label: "Rate Trip", primary: true }] },
+};
+
+const defaultIcon = MdNotifications;
 
 const tabs = ["All", "Trips", "Earnings", "System"];
 
 const typeFilterMap = {
   All: null,
-  Trips: "trip",
+  Trips: "shipment",
   Earnings: "payment",
   System: "system",
 };
 
 export default function DriverNotifications() {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState("All");
+
+  useEffect(() => {
+    fetch("/api/driver/notifications")
+      .then(res => res.ok ? res.json() : null)
+      .then(api => {
+        if (!api?.notifications) return;
+        setNotifications(api.notifications.map(n => {
+          const config = typeConfig[n.type] || typeConfig.system;
+          return {
+            id: n._id,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            time: n.createdAt ? formatTimeAgo(new Date(n.createdAt)) : "Just now",
+            unread: !n.read,
+            ...config,
+          };
+        }));
+      })
+      .catch(() => {});
+  }, []);
+
+  function formatTimeAgo(date) {
+    const diff = Date.now() - date.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins} mins ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  }
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
@@ -124,10 +77,12 @@ export default function DriverNotifications() {
 
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    fetch("/api/driver/notifications", { method: "PATCH" }).catch(() => {});
   };
 
   const deleteNotification = (id) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    fetch(`/api/driver/notifications?id=${id}`, { method: "DELETE" }).catch(() => {});
   };
 
   const markAsRead = (id) => {
@@ -191,7 +146,7 @@ export default function DriverNotifications() {
           </div>
         ) : (
           filtered.map((n) => {
-            const Icon = n.icon;
+            const Icon = n.icon || defaultIcon;
             return (
               <div
                 key={n.id}

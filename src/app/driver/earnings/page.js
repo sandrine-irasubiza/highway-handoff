@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   MdAccountBalanceWallet,
   MdMonitor,
@@ -16,6 +17,65 @@ import {
 } from "react-icons/md";
 
 export default function EarningsPage() {
+  const [data, setData] = useState({
+    totalBalance: 4820.5,
+    balanceTrend: "+12.5%",
+    lifetimeEarnings: 128450.0,
+    avgPerTrip: 845.2,
+    pendingPayouts: 1250.0,
+    pendingDate: "Oct 24, 2024",
+    chartBars: [
+      { height: 40, value: 320 },
+      { height: 65, value: 520 },
+      { height: 55, value: 440 },
+      { height: 80, value: 640 },
+      { height: 95, value: 840 },
+      { height: 45, value: 360 },
+      { height: 60, value: 480 },
+      { height: 30, value: 240 },
+      { height: 70, value: 560 },
+      { height: 50, value: 400 },
+      { height: 85, value: 680 },
+      { height: 40, value: 320 },
+      { height: 65, value: 520 },
+      { height: 75, value: 600 },
+      { height: 35, value: 280 },
+    ],
+    recentPayouts: [
+      { date: "Oct 20, 2024", id: "TRIP-99821", description: "Chicago to St. Louis", amount: 1420.0, status: "Completed" },
+      { date: "Oct 18, 2024", id: "TRIP-99814", description: "Indianapolis Hub", amount: 850.5, status: "Processing" },
+      { date: "Oct 15, 2024", id: "TRIP-99780", description: "Louisville Regional", amount: 1120.0, status: "Completed" },
+      { date: "Oct 12, 2024", id: "WEEKLY_BONUS", description: "Performance Incentive", amount: 500.0, status: "Completed" },
+    ],
+  });
+
+  useEffect(() => {
+    fetch("/api/driver/earnings")
+      .then(res => res.ok ? res.json() : null)
+      .then(api => {
+        if (!api) return;
+        setData(prev => ({
+          totalBalance: api.totalEarnings ?? prev.totalBalance,
+          balanceTrend: api.totalEarnings > 0 ? "+12.5%" : "+0%",
+          lifetimeEarnings: api.totalEarnings ?? prev.lifetimeEarnings,
+          avgPerTrip: api.totalEarnings && api.totalTrips ? +(api.totalEarnings / api.totalTrips).toFixed(2) : prev.avgPerTrip,
+          pendingPayouts: api.pendingPayouts ?? prev.pendingPayouts,
+          pendingDate: prev.pendingDate,
+          chartBars: prev.chartBars,
+          recentPayouts: api.recentEarnings?.length > 0
+            ? api.recentEarnings.map(e => ({
+                date: new Date(e.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+                id: e.trip?._id?.slice(-5)?.toUpperCase() || `EARN-${String(e._id).slice(-5)}`,
+                description: e.description || e.trip ? `${(e.trip?.origin?.city || "City")} to ${(e.trip?.destination?.city || "City")}` : "Trip Earnings",
+                amount: e.amount,
+                status: e.status === "paid" ? "Completed" : e.status === "pending" ? "Processing" : "Completed",
+              }))
+            : prev.recentPayouts,
+        }));
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="space-y-4 md:space-y-8">
       {/* Page Header */}
@@ -48,10 +108,10 @@ export default function EarningsPage() {
             <div className="p-3 bg-primary-container/10 rounded-xl">
               <MdAccountBalanceWallet className="text-primary-container text-2xl" />
             </div>
-            <span className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-green-100">+12.5%</span>
+            <span className="text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-green-100">{data.balanceTrend}</span>
           </div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Balance</p>
-          <h3 className="text-2xl font-black text-primary-container">$4,820.50</h3>
+          <h3 className="text-2xl font-black text-primary-container">${data.totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           <p className="text-xs text-slate-400 mt-2 italic">Available for instant withdrawal</p>
         </div>
 
@@ -63,7 +123,7 @@ export default function EarningsPage() {
             </div>
           </div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Lifetime Earnings</p>
-          <h3 className="text-2xl font-black text-primary-container">$128,450.00</h3>
+          <h3 className="text-2xl font-black text-primary-container">${data.lifetimeEarnings.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           <p className="text-xs text-slate-400 mt-2 italic">Since joining Jan 2023</p>
         </div>
 
@@ -75,7 +135,7 @@ export default function EarningsPage() {
             </div>
           </div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Average per Trip</p>
-          <h3 className="text-2xl font-black text-primary-container">$845.20</h3>
+          <h3 className="text-2xl font-black text-primary-container">${data.avgPerTrip.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           <p className="text-xs text-slate-400 mt-2 italic">Last 30 trips average</p>
         </div>
 
@@ -87,8 +147,8 @@ export default function EarningsPage() {
             </div>
           </div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pending Payouts</p>
-          <h3 className="text-2xl font-black text-primary-container">$1,250.00</h3>
-          <p className="text-xs text-slate-400 mt-2 italic">Expected by Oct 24, 2024</p>
+          <h3 className="text-2xl font-black text-primary-container">${data.pendingPayouts.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+          <p className="text-xs text-slate-400 mt-2 italic">Expected by {data.pendingDate}</p>
         </div>
       </div>
 
@@ -106,23 +166,7 @@ export default function EarningsPage() {
           </div>
         </div>
         <div className="h-64 flex items-end justify-between gap-2 px-2">
-          {[
-            { height: 40, value: 320 },
-            { height: 65, value: 520 },
-            { height: 55, value: 440 },
-            { height: 80, value: 640 },
-            { height: 95, value: 840 },
-            { height: 45, value: 360 },
-            { height: 60, value: 480 },
-            { height: 30, value: 240 },
-            { height: 70, value: 560 },
-            { height: 50, value: 400 },
-            { height: 85, value: 680 },
-            { height: 40, value: 320 },
-            { height: 65, value: 520 },
-            { height: 75, value: 600 },
-            { height: 35, value: 280 },
-          ].map((bar, i) => (
+          {data.chartBars.map((bar, i) => (
             <div
               key={i}
               className={`flex-1 rounded-t-sm transition-all cursor-pointer group relative ${
@@ -168,66 +212,28 @@ export default function EarningsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-600">Oct 20, 2024</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-primary-container font-bold text-sm">TRIP-99821</span>
-                      <span className="text-[11px] text-slate-400">Chicago to St. Louis</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right font-black text-primary-container">$1,420.00</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 uppercase flex items-center gap-1 w-fit">
-                      <MdCheckCircle className="text-[10px]" /> Completed
-                    </span>
-                  </td>
-                </tr>
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-600">Oct 18, 2024</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-primary-container font-bold text-sm">TRIP-99814</span>
-                      <span className="text-[11px] text-slate-400">Indianapolis Hub</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right font-black text-primary-container">$850.50</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-primary-container/5 text-primary-container border border-primary-container/20 uppercase flex items-center gap-1 w-fit">
-                      <MdHourglassTop className="text-[10px]" /> Processing
-                    </span>
-                  </td>
-                </tr>
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-600">Oct 15, 2024</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-primary-container font-bold text-sm">TRIP-99780</span>
-                      <span className="text-[11px] text-slate-400">Louisville Regional</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right font-black text-primary-container">$1,120.00</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 uppercase flex items-center gap-1 w-fit">
-                      <MdCheckCircle className="text-[10px]" /> Completed
-                    </span>
-                  </td>
-                </tr>
-                <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-600">Oct 12, 2024</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-primary-container font-bold text-sm">WEEKLY_BONUS</span>
-                      <span className="text-[11px] text-slate-400">Performance Incentive</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right font-black text-primary-container">$500.00</td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 uppercase flex items-center gap-1 w-fit">
-                      <MdCheckCircle className="text-[10px]" /> Completed
-                    </span>
-                  </td>
-                </tr>
+                {data.recentPayouts.map((p, i) => (
+                  <tr key={i} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 text-sm text-slate-600">{p.date}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-primary-container font-bold text-sm">{p.id}</span>
+                        <span className="text-[11px] text-slate-400">{p.description}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right font-black text-primary-container">${p.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1 w-fit ${
+                        p.status === "Completed"
+                          ? "bg-green-50 text-green-700 border border-green-200"
+                          : "bg-primary-container/5 text-primary-container border border-primary-container/20"
+                      }`}>
+                        {p.status === "Completed" ? <MdCheckCircle className="text-[10px]" /> : <MdHourglassTop className="text-[10px]" />}
+                        {p.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -294,7 +300,7 @@ export default function EarningsPage() {
           </div>
           <div className="flex flex-col items-center gap-3">
             <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Available Balance</p>
-            <p className="text-4xl font-black">$4,820.50</p>
+            <p className="text-4xl font-black">${data.totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             <button className="bg-secondary-container text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-secondary-container/90 active:scale-95 transition-all shadow-lg mt-2 flex items-center gap-2">
               <MdAccountBalanceWallet className="text-lg" />
               Withdraw Now
